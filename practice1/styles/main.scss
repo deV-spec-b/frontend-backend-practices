@@ -1,0 +1,49 @@
+$primary-color: #ff6b6b;
+$text-color: #2c3e50;
+
+@mixin button-base($bg) {
+    background: $bg;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 25px;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.3s;
+    
+    &:hover {
+        background: darken($bg, 10%);
+        transform: scale(1.05);
+    }
+}
+
+.product-card {
+    max-width: 300px;
+    border: 1px solid #eee;
+    border-radius: 15px;
+    padding: 20px;
+    text-align: center;
+    font-family: Arial, sans-serif;
+    margin: 50px auto;
+    color: $text-color;
+    
+    &__image {
+        width: 100%;
+        border-radius: 10px;
+    }
+    
+    &__title {
+        font-size: 24px;
+        margin: 15px 0 10px;
+    }
+    
+    &__description {
+        color: lighten($text-color, 20%);
+        font-size: 14px;
+        line-height: 1.5;
+    }
+    
+    &__button {
+        @include button-base($primary-color);
+        margin-top: 15px;
+    }
+}
