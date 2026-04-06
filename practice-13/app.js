@@ -10,6 +10,9 @@ function setActiveButton(activeId) {
 // Подключение к Socket.IO
 const socket = io('http://localhost:3001');
 
+// Генератор уникальных ID (на основе времени)
+let nextId = Date.now();
+
 // Функция для преобразования VAPID-ключа
 function urlBase64ToUint8Array(base64String) {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -79,7 +82,6 @@ async function loadContent(page) {
         const html = await response.text();
         contentDiv.innerHTML = html;
 
-        // Если загружена главная страница, инициализируем функционал заметок
         if (page === 'home') {
             initNotes();
         }
@@ -89,32 +91,70 @@ async function loadContent(page) {
     }
 }
 
-// Инициализация заметок
+// Инициализация заметок (обычные + с напоминанием)
 function initNotes() {
     const form = document.getElementById('note-form');
     const input = document.getElementById('note-input');
+    const reminderForm = document.getElementById('reminder-form');
+    const reminderText = document.getElementById('reminder-text');
+    const reminderTime = document.getElementById('reminder-time');
     const list = document.getElementById('notes-list');
 
     function loadNotes() {
-    const notes = JSON.parse(localStorage.getItem('notes') || '[]');
-    if (list) {
-        list.innerHTML = notes.map(note => {
-            const text = typeof note === 'object' ? note.text : note;
-            return `<li style="padding: 10px; margin: 8px 0; background: #f5f5f5; border-radius: 8px;">${text}</li>`;
-        }).join('');
+        const notes = JSON.parse(localStorage.getItem('notes') || '[]');
+        if (list) {
+            list.innerHTML = notes.map(note => {
+                let reminderInfo = '';
+                if (note.reminder) {
+                    const date = new Date(note.reminder);
+                    reminderInfo = `<br><small>⏰ Напоминание: ${date.toLocaleString()}</small>`;
+                }
+                return `<li class="card" style="margin-bottom: 0.5rem; padding: 0.8rem;">
+                            ${note.text}
+                            ${reminderInfo}
+                        </li>`;
+            }).join('');
+        }
     }
-}
 
-    function addNote(text, datetime) {
-    const notes = JSON.parse(localStorage.getItem('notes') || '[]');
-    const newNote = { id: Date.now(), text, datetime: datetime || '' };
-    notes.push(newNote);
-    localStorage.setItem('notes', JSON.stringify(notes));
-    loadNotes();
+    function addNote(text) {
+        const notes = JSON.parse(localStorage.getItem('notes') || '[]');
+        const newNote = { id: nextId++, text, reminder: null };
+        notes.push(newNote);
+        localStorage.setItem('notes', JSON.stringify(notes));
+        loadNotes();
+        socket.emit('newTask', newNote);
+    }
 
-    // Отправляем событие на сервер
-    socket.emit('newTask', newNote);
-}
+    function addReminder(text, reminderTimeStr) {
+        const timestamp = new Date(reminderTimeStr).getTime();
+        console.log('📅 Выбранное время:', new Date(timestamp));
+        console.log('⏰ Текущее время:', new Date());
+        console.log('⏱️ Задержка (мс):', timestamp - Date.now());
+
+        if (isNaN(timestamp)) {
+            alert('Некорректная дата');
+            return;
+        }
+
+        if (timestamp <= Date.now()) {
+            alert('Время напоминания в будущем');
+            return;
+        }
+        
+        const notes = JSON.parse(localStorage.getItem('notes') || '[]');
+        const newReminder = { id: nextId++, text, reminder: timestamp };
+        notes.push(newReminder);
+        localStorage.setItem('notes', JSON.stringify(notes));
+        loadNotes();
+
+        // Отправляем событие на сервер
+        socket.emit('newReminder', {
+            id: newReminder.id,
+            text: text,
+            reminderTime: timestamp
+        });
+    }
 
     if (form) {
         form.addEventListener('submit', (e) => {
@@ -123,6 +163,19 @@ function initNotes() {
             if (text) {
                 addNote(text);
                 input.value = '';
+            }
+        });
+    }
+
+    if (reminderForm) {
+        reminderForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const text = reminderText.value.trim();
+            const time = reminderTime.value;
+            if (text && time) {
+                addReminder(text, time);
+                reminderText.value = '';
+                reminderTime.value = '';
             }
         });
     }
@@ -141,7 +194,6 @@ aboutBtn.addEventListener('click', () => {
     loadContent('about');
 });
 
-// Загружаем главную страницу по умолчанию
 loadContent('home');
 
 // Регистрация Service Worker
