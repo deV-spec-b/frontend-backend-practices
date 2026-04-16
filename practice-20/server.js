@@ -74,5 +74,5 @@ app.delete('/users/:id', async (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`Сервер запущен на http://localhost:${port}`);
+    console.log(`cервер запущен на http://localhost:${port}`);
 });
