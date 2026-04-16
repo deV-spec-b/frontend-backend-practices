@@ -5,8 +5,8 @@ const app = express();
 const port = process.env.PORT || 3003;
 
 mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log('✅ Connected to MongoDB'))
-    .catch(err => console.error('❌ MongoDB connection error:', err));
+    .then(() => console.log('Connected to MongoDB'))
+    .catch(err => console.error('MongoDB connection error:', err));
 
 app.use(express.json());
 
@@ -74,5 +74,5 @@ app.delete('/users/:id', async (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`🚀 Сервер запущен на http://localhost:${port}`);
+    console.log(`Сервер запущен на http://localhost:${port}`);
 });
